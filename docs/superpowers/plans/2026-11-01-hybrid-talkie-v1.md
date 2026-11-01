@@ -88,7 +88,7 @@ assertThrows(IllegalArgumentException.class, () -> AudioPacket.decode(new byte[5
 - [x] Replace the reserved Nginx responses with a prefix-preserving WebSocket proxy. Back up current files, run `nginx -t`, reload, and wait for the expected JSON response rather than only HTTP 200. Roll back on failure.
 - [x] Verify public health, a real three-logical-member proxy exchange, unauthorized frames/room admission, APK download and unchanged existing home page.
 - [x] Review spec compliance and then code quality, fix identified issues, and rerun the affected checks.
-- [ ] Update the README with build/install instructions, test results and the precise unverified real-radio scenarios. Commit and push the branch; report the APK URL and source commit without claiming multi-phone acoustic tests were run.
+- [x] Update the README with build/install instructions, test results and the precise unverified real-radio scenarios. Commit and push the branch; report the APK URL and source commit without claiming multi-phone acoustic tests were run.
 
 ## Acceptance boundaries
 
