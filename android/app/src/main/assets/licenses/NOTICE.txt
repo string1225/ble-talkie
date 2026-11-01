@@ -1,0 +1,12 @@
+蓝牙对讲 0.1.0 — third-party notices
+
+Opus 1.5.2: Copyright Xiph.Org and the contributors listed in opus-COPYING.txt.
+Redistributed unmodified upstream source is in the repository's third_party archive.
+
+OkHttp 4.12.0 and Okio: Copyright Square, Inc.; Apache License 2.0.
+ZXing Core 3.5.3: Copyright ZXing authors; Apache License 2.0.
+Kotlin standard library: Copyright JetBrains and Kotlin contributors; Apache License 2.0.
+
+The Apache License 2.0 is included in Apache-2.0.txt. The Opus copyright and
+redistribution terms are included in opus-COPYING.txt. These files are packaged
+in the APK assets/licenses directory.

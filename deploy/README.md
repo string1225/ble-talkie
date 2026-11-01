@@ -1,36 +1,49 @@
-# 139 服务器入口
+# 139 上的对讲服务
 
-对讲服务使用 `https://home.sunny-string.cn/ble-talkie/`。
+公网入口为 `https://home.sunny-string.cn/ble-talkie/`。当前已由独立 Go 进程提供服务，替换了最初的路径预留响应。
 
-2026-11-01 已在 139 部署入口预留配置，语音中继与 App 尚未部署：
-
-| 请求 | 当前响应 |
+| 路径 | 用途 |
 | --- | --- |
-| `/ble-talkie` | 308 跳转到 `/ble-talkie/` |
-| `/ble-talkie/` | 200 JSON，`status=reserved`、`relayReady=false` |
-| `/ble-talkie/healthz`、`/ble-talkie/api/…`、`/ble-talkie/ws` | 503 JSON，`error=relay_not_deployed` |
+| `/ble-talkie/` | 服务信息与入口链接 |
+| `/ble-talkie/healthz` | 就绪检查，正常时 `200 {"status":"ready"}` |
+| `/ble-talkie/download` | 当前测试 APK |
+| `/ble-talkie/invite?code=…` | 打开 App 的邀请入口与安装链接 |
+| `/ble-talkie/api/…` | 队伍和入队审批 API |
+| `/ble-talkie/ws` | 原生客户端语音、成员路由与管理消息 |
 
-不能将入口的 200 响应视为语音服务已经可用。客户端应使用后续中继实现的健康与会话协议判断就绪状态。
+## 进程和数据
 
-## Nginx 接入
+- systemd：`ble-talkie.service`，模板为 [ble-talkie.service](ble-talkie.service)。
+- 监听：`127.0.0.1:18110`，仅由现有 HTTPS 站点代理。
+- 发布：`/opt/ble-talkie/releases/`；`/opt/ble-talkie/current` 为原子切换的当前发布软链接。
+- 发布目录中包含 `relay` 和 `ble-talkie.apk`，文件按 SHA-256 核对后安装。
+- 使用 systemd `DynamicUser`，持久目录 `/var/lib/ble-talkie/` 权限 0700，状态文件权限 0600。
+- `BLE_TALKIE_STATE=/var/lib/ble-talkie/state.json` 保存队伍、有效期和成员凭据；路由、待审批请求和语音不持久化。
+- `BLE_TALKIE_APK=/opt/ble-talkie/current/ble-talkie.apk` 提供下载，不通过仓库分发生产凭据。
 
-将本目录的 `nginx-ble-talkie-location.conf` 安装到服务器的
-`/etc/nginx/snippets/ble-talkie-location.conf`，并在现有
-`/etc/nginx/conf.d/sunny-string.conf` 的 HTTPS server 块中加入：
+服务重启会恢复已接受的成员及组队码，成员初始离线后重新连接。队伍固定在创建 24 小时后过期。未完成申请及其领取凭据在重启后需要重新提交。
+
+## 现有 Nginx 接入
+
+将 [nginx-ble-talkie-location.conf](nginx-ble-talkie-location.conf) 安装到
+`/etc/nginx/snippets/ble-talkie-location.conf`。现有
+`/etc/nginx/conf.d/sunny-string.conf` 的 HTTPS server 中已经加入：
 
 ```nginx
 include /etc/nginx/snippets/ble-talkie-location.conf;
 ```
 
-修改前备份现有站点和同名片段。先运行 `nginx -t`，通过后 reload；失败时恢复备份并重新检查。不要新增冲突的 HTTPS server，也不要覆盖同一站点的其他路径。
+代理保留完整 `/ble-talkie` 前缀，传递 WebSocket Upgrade，并关闭连接缓冲。原生 Android 客户端没有 Origin 请求头；服务端不会为了浏览器信任任意转发的来源头。
 
-`reload` 返回不等于新 worker 已就绪。需要有截止时间地检查新入口的响应类型与 JSON 内容，再判断部署成功；原站点的 HTML 回退也会返回 200，不能仅凭状态码判断。部署时已验证 Nginx 配置、HTTPS 入口、308 跳转、未部署接口的 503，以及原首页响应内容一致性。配置备份保存在服务器 `/var/backups/ble-talkie/` 下。
+发布前备份现有片段、systemd 单元及当前软链接，备份位于 `/var/backups/ble-talkie/`。先校验文件摘要，再检查本地服务健康、执行 `nginx -t`，最后 reload 并检查公网响应。`reload` 返回后还需等待新配置生效；不能仅凭 HTTP 200 判断成功，因为站点 HTML 回退也会返回 200。
 
-## 后续中继接入约定
+回退时恢复上一次软链接及对应配置，重启本服务并重新检查 Nginx 和公网健康。无需覆盖其他站点、证书或其他业务进程。
 
-- 公网基础路径固定为 `/ble-talkie`，应用路由、API、WebSocket、邀请链接均携带此前缀。
-- 语音中继使用独立进程与本地监听端口；具体端口在部署中继时检查占用后确定。
-- 代理保留完整前缀，正确传递 Host、转发来源、WebSocket Upgrade，并关闭语音连接的代理缓冲。
-- 保持现有 HTTPS/TLS 入口及其他业务配置。
-- 生产凭据放在服务器配置中，不提交到仓库。
-- 后端上线后替换预留响应，并验证真实会话、组队和音频转发。
+```sh
+systemctl status ble-talkie.service
+journalctl -u ble-talkie.service --since '10 minutes ago'
+curl -fsS http://127.0.0.1:18110/ble-talkie/healthz
+curl -fsS https://home.sunny-string.cn/ble-talkie/healthz
+```
+
+已验证公网健康、原生客户端 WSS 代理来源与混音、在线退队撤权、APK 下载摘要，以及原首页响应内容一致。

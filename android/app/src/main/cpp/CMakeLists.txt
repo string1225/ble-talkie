@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.22)
+project(talkie_opus LANGUAGES C CXX)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(OPUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(OPUS_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(OPUS_INSTALL_PKG_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
+set(OPUS_INSTALL_CMAKE_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
+include(FetchContent)
+FetchContent_Declare(opus
+    URL "${CMAKE_CURRENT_LIST_DIR}/../../../../../third_party/opus-1.5.2.tar.gz"
+    URL_HASH SHA256=65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1)
+FetchContent_MakeAvailable(opus)
+target_compile_options(opus PRIVATE -O2)
+add_library(talkie_opus SHARED opus_jni.cpp)
+target_compile_features(talkie_opus PRIVATE cxx_std_17)
+target_link_libraries(talkie_opus PRIVATE opus)

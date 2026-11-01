@@ -1,0 +1,28 @@
+[Unit]
+Description=Four-person Bluetooth and network talkie relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=ble-talkie
+StateDirectoryMode=0700
+UMask=0077
+Environment=BLE_TALKIE_LISTEN=127.0.0.1:18110
+Environment=BLE_TALKIE_PREFIX=/ble-talkie
+Environment=BLE_TALKIE_STATE=/var/lib/ble-talkie/state.json
+Environment=BLE_TALKIE_APK=/opt/ble-talkie/current/ble-talkie.apk
+ExecStart=/opt/ble-talkie/current/relay
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

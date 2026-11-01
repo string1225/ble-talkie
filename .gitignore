@@ -1,8 +1,10 @@
 .gradle/
 **/build/
+**/.cxx/
 android/local.properties
 .idea/
 *.iml
-server/relay
+/server/relay.exe
+/server/bin/
 artifacts/
 *.log
