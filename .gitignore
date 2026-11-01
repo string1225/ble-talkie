@@ -1,0 +1,8 @@
+.gradle/
+**/build/
+android/local.properties
+.idea/
+*.iml
+server/relay
+artifacts/
+*.log
